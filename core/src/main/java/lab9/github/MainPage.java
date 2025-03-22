@@ -11,6 +11,7 @@ import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
@@ -68,40 +69,47 @@ public class MainPage implements Screen {
         songList = new SongList();
         createUI();
     }
-private void createUI() {
-  private void createUI() {
-    mainTable = new Table();
-    mainTable.setFillParent(true);
-    mainTable.padLeft(10).padRight(10).padTop(10).padBottom(10);
+    
+    private void createUI() {
+        mainTable = new Table();
+        mainTable.setFillParent(true);
+        mainTable.padLeft(10).padRight(10).padTop(10).padBottom(10);
 
-    Table leftPanel = new Table();
-    if (game.skin.has("default-pane", Drawable.class)) {
-        leftPanel.setBackground(game.skin.getDrawable("default-pane"));
-    } else {
-        // Fallback: Create a simple gray background
-        Pixmap pixmap = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
-        pixmap.setColor(Color.GRAY);
-        pixmap.fill();
-        Texture texture = new Texture(pixmap);
-        pixmap.dispose();
-        leftPanel.setBackground(new TextureRegionDrawable(new TextureRegion(texture)));
-    }
+        Table leftPanel = new Table();
+        if (game.skin.has("default-pane", Drawable.class)) {
+            leftPanel.setBackground(game.skin.getDrawable("default-pane"));
+        } else {
+            // Fallback: Create a simple gray background
+            Pixmap pixmap = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
+            pixmap.setColor(Color.GRAY);
+            pixmap.fill();
+            Texture texture = new Texture(pixmap);
+            pixmap.dispose();
+            leftPanel.setBackground(new TextureRegionDrawable(new TextureRegion(texture)));
+        }
 
-    // Create a label style with a fallback for the "white" color
-    Label.LabelStyle labelStyle = new Label.LabelStyle();
-    if (game.skin.has("white", Color.class)) {
-        labelStyle.fontColor = game.skin.getColor("white");
-    } else {
-        // Fallback: Use a default white color
-        labelStyle.fontColor = Color.WHITE;
-    }
-    Label playlistTitle = new Label("Lista de Reproducción", labelStyle);
-    playlistTitle.setAlignment(Align.center);
+        // Create a label style with proper font
+        Label.LabelStyle labelStyle;
+        if (game.skin.has("default-font", BitmapFont.class)) {
+            labelStyle = new Label.LabelStyle(game.skin.getFont("default-font"), Color.WHITE);
+        } else {
+            // Fallback: Create a default font
+            labelStyle = new Label.LabelStyle(new BitmapFont(), Color.WHITE);
+        }
+        
+        if (game.skin.has("white", Color.class)) {
+            labelStyle.fontColor = game.skin.getColor("white");
+        }
+        
+        Label playlistTitle = new Label("Lista de Reproducción", labelStyle);
+        playlistTitle.setAlignment(Align.center);
 
         rightPanel = new Table();
 
         songListTable = new Table();
-        songListTable.setBackground(game.skin.getDrawable("default-pane"));
+        if (game.skin.has("default-pane", Drawable.class)) {
+            songListTable.setBackground(game.skin.getDrawable("default-pane"));
+        }
 
         songListScroll = new ScrollPane(songListTable, game.skin);
         songListScroll.setFadeScrollBars(false);
@@ -123,20 +131,57 @@ private void createUI() {
         albumImage = new Image(new TextureRegionDrawable(new TextureRegion(defaultAlbumCover)));
         albumImage.setSize(200, 200);
 
-        titleLabel = new Label("Sin reproducción", game.skin, "default-font", "white");
+        // Make sure we have a proper label style with font for all labels
+        Label.LabelStyle defaultLabelStyle = createDefaultLabelStyle();
+        
+        titleLabel = new Label("Sin reproducción", defaultLabelStyle);
         titleLabel.setAlignment(Align.center);
         titleLabel.setFontScale(1.5f);
 
-        artistLabel = new Label("", game.skin);
+        artistLabel = new Label("", defaultLabelStyle);
         artistLabel.setAlignment(Align.center);
 
-        genreLabel = new Label("", game.skin);
+        genreLabel = new Label("", defaultLabelStyle);
         genreLabel.setAlignment(Align.center);
 
         Table progressTable = new Table();
-        currentTimeLabel = new Label("0:00", game.skin);
-        durationLabel = new Label("0:00", game.skin);
-        progressBar = new ProgressBar(0, 1, 0.01f, false, game.skin);
+        currentTimeLabel = new Label("0:00", defaultLabelStyle);
+        durationLabel = new Label("0:00", defaultLabelStyle);
+        
+        // Create a progress bar with proper style
+        ProgressBar.ProgressBarStyle progressBarStyle;
+        if (game.skin.has("default-horizontal", ProgressBar.ProgressBarStyle.class)) {
+            progressBarStyle = game.skin.get("default-horizontal", ProgressBar.ProgressBarStyle.class);
+        } else {
+            // Create a fallback progress bar style
+            progressBarStyle = new ProgressBar.ProgressBarStyle();
+            
+            // Create a background drawable
+            Pixmap bgPixmap = new Pixmap(10, 10, Pixmap.Format.RGBA8888);
+            bgPixmap.setColor(Color.DARK_GRAY);
+            bgPixmap.fill();
+            Texture bgTexture = new Texture(bgPixmap);
+            bgPixmap.dispose();
+            progressBarStyle.background = new TextureRegionDrawable(new TextureRegion(bgTexture));
+            
+            // Create a knob drawable
+            Pixmap knobPixmap = new Pixmap(10, 10, Pixmap.Format.RGBA8888);
+            knobPixmap.setColor(Color.LIGHT_GRAY);
+            knobPixmap.fill();
+            Texture knobTexture = new Texture(knobPixmap);
+            knobPixmap.dispose();
+            progressBarStyle.knob = new TextureRegionDrawable(new TextureRegion(knobTexture));
+            
+            // Create a knobBefore drawable (the filled part of the progress bar)
+            Pixmap knobBeforePixmap = new Pixmap(10, 10, Pixmap.Format.RGBA8888);
+            knobBeforePixmap.setColor(Color.LIGHT_GRAY);
+            knobBeforePixmap.fill();
+            Texture knobBeforeTexture = new Texture(knobBeforePixmap);
+            knobBeforePixmap.dispose();
+            progressBarStyle.knobBefore = new TextureRegionDrawable(new TextureRegion(knobBeforeTexture));
+        }
+        
+        progressBar = new ProgressBar(0, 1, 0.01f, false, progressBarStyle);
 
         progressTable.add(currentTimeLabel).padRight(5);
         progressTable.add(progressBar).expandX().fillX();
@@ -216,6 +261,21 @@ private void createUI() {
                 }
             }
         });
+    }
+    
+    private Label.LabelStyle createDefaultLabelStyle() {
+        Label.LabelStyle style;
+        if (game.skin.has("default-font", BitmapFont.class)) {
+            style = new Label.LabelStyle(game.skin.getFont("default-font"), Color.WHITE);
+        } else {
+            style = new Label.LabelStyle(new BitmapFont(), Color.WHITE);
+        }
+        
+        if (game.skin.has("white", Color.class)) {
+            style.fontColor = game.skin.getColor("white");
+        }
+        
+        return style;
     }
 
     private void initializeDefaultCover() {
@@ -384,28 +444,46 @@ private void createUI() {
 
     private void updateSongList() {
         songListTable.clear();
-
-        songListTable.add(new Label("Nombre", game.skin, "default-font", "white")).expandX().fillX();
-        songListTable.add(new Label("Artista", game.skin, "default-font", "white")).expandX().fillX();
-        songListTable.add(new Label("Género", game.skin, "default-font", "white")).expandX().fillX();
-        songListTable.add(new Label("Duración", game.skin, "default-font", "white")).expandX().fillX().row();
+        
+        Label.LabelStyle headerStyle = createDefaultLabelStyle();
+        
+        songListTable.add(new Label("Nombre", headerStyle)).expandX().fillX();
+        songListTable.add(new Label("Artista", headerStyle)).expandX().fillX();
+        songListTable.add(new Label("Género", headerStyle)).expandX().fillX();
+        songListTable.add(new Label("Duración", headerStyle)).expandX().fillX().row();
 
         CancionNodo current = songList.getHead();
         int index = 0;
+        
+        Label.LabelStyle rowStyle = createDefaultLabelStyle();
 
         while (current != null) {
             final int songIndex = index;
             final Cancion song = current.getSong();
 
             Table row = new Table();
-            row.setBackground(index % 2 == 0
-                    ? game.skin.getDrawable("default-pane")
-                    : game.skin.getDrawable("default-pane-noborder"));
+            Drawable rowBackground;
+            
+            if (index % 2 == 0 && game.skin.has("default-pane", Drawable.class)) {
+                rowBackground = game.skin.getDrawable("default-pane");
+            } else if (game.skin.has("default-pane-noborder", Drawable.class)) {
+                rowBackground = game.skin.getDrawable("default-pane-noborder");
+            } else {
+                // Create a fallback background
+                Pixmap pixmap = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
+                pixmap.setColor(index % 2 == 0 ? new Color(0.2f, 0.2f, 0.2f, 1) : new Color(0.25f, 0.25f, 0.25f, 1));
+                pixmap.fill();
+                Texture texture = new Texture(pixmap);
+                pixmap.dispose();
+                rowBackground = new TextureRegionDrawable(new TextureRegion(texture));
+            }
+            
+            row.setBackground(rowBackground);
 
-            row.add(new Label(song.getSongName(), game.skin)).expandX().fillX();
-            row.add(new Label(song.getArtist(), game.skin)).expandX().fillX();
-            row.add(new Label(song.getMusicGenre(), game.skin)).expandX().fillX();
-            row.add(new Label(song.getDuration(), game.skin)).expandX().fillX();
+            row.add(new Label(song.getSongName(), rowStyle)).expandX().fillX();
+            row.add(new Label(song.getArtist(), rowStyle)).expandX().fillX();
+            row.add(new Label(song.getMusicGenre(), rowStyle)).expandX().fillX();
+            row.add(new Label(song.getDuration(), rowStyle)).expandX().fillX();
 
             row.addListener(new ClickListener() {
                 @Override
@@ -424,7 +502,6 @@ private void createUI() {
     }
 
     private void updateSongInfo() {
-
         if (defaultAlbumCover != null) {
             albumImage.setDrawable(new TextureRegionDrawable(new TextureRegion(defaultAlbumCover)));
         }
@@ -503,5 +580,4 @@ private void createUI() {
             }
         }
     }
-
 }
